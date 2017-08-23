@@ -2,6 +2,34 @@ var restify = require('restify');
 var YQL     = require('yql');
 var builder = require('botbuilder');
 
+
+const AIMLInterpreter = require('AIMLInterpreter');
+//const builder = require('botbuilder');
+
+const aimlInterpreter = new AIMLInterpreter({ name: 'Hella', age: '25' });
+aimlInterpreter.loadAIMLFilesIntoArray(['./aiml_alice/ai.aiml']);
+//aimlInterpreter.loadAIMLFilesIntoArray(['./aiml_alice/client.aiml']);
+
+const aimlPromise = function (question) {
+    return new Promise(function (resolve, reject) {
+        aimlInterpreter.findAnswerInLoadedAIMLFiles(question, function (answer, wildCardArray, input) {
+            console.log(answer,'getting answererer for this question',question)
+             return resolve(answer);
+//should also handle reject!!! this is demo code only :)
+        });
+        
+      
+ 
+
+        
+    })
+};
+
+
+//const connector1 = new builder.ConsoleConnector().listen();
+//const bot1 = new builder.UniversalBot(connector1);
+
+
 var count1;
 // Setup Restify Server
 var server = restify.createServer();
@@ -47,13 +75,20 @@ server.post('/api/messages', connector.listen());
 	//}
 });*/
 
+
+
 var bot = new builder.UniversalBot(connector, function (session) {
 		session.send('Sorry, I did not understand \'%s\'. Please check your input.', session.message.text);
-});
+    });
+
+
+
+
+
 
 //var bot = new builder.UniversalBot(connector);
 
-var LUIS_MODEL_URL='https://westus.api.cognitive.microsoft.com/luis/v2.0/apps/a3902178-7bb8-4400-ad97-9720a5e6f0c9?subscription-key=77230c4c7ccf4d4e966167ad31a7190c&verbose=true&timezoneOffset=0&q='
+var LUIS_MODEL_URL='https://westus.api.cognitive.microsoft.com/luis/v2.0/apps/a3902178-7bb8-4400-ad97-9720a5e6f0c9?subscription-key=77230c4c7ccf4d4e966167ad31a7190c&timezoneOffset=0&verbose=true&q='
 
 var recognizer = new builder.LuisRecognizer(LUIS_MODEL_URL);
 bot.recognizer(recognizer);
@@ -86,6 +121,9 @@ var intents = new builder.IntentDialog({recognizers:[recognizer]})
     matches: 'greeting'
 });*/
 
+
+
+
 bot.dialog('greeting', [
   function(session,args,next){
   
@@ -114,7 +152,38 @@ bot.dialog('greeting', [
 });
 
 
+/*
+const connector = new builder.ConsoleConnector().listen();
+const bot = new builder.UniversalBot(connector);
+*/
+
+
+
+
+bot.dialog(' / ', [
+    function (session) {
+        console.log('test session')
+        session.beginDialog('askName');
+        builder.Prompts.text(session, 'Hi! Ask me something... ');
+    },
+    
+  function (session, results) {
+        console.log(results,'session, results')
+        aimlPromise(results.response).then(res => session.send(` ${res}`));
+        console.log(results,'session, res')
+        
+    }
+]).triggerAction({
+    matches: ' / '
+});
+  
+
+
+
+
 bot.dialog('None', [
+
+        
   function(session,args,next){
   if(count1===1)
 	{
@@ -173,7 +242,20 @@ bot.dialog('None', [
     session.send('I am not trained to answer \'%s\' \n\nPlease help me by giving questions related to Lexus car Service / Weather ', session.message.text);
 	//session.send('Let me know what kind of service you like to go with Routine Service / Auxiliary service');
 	}
-  }
+  },
+    
+  function (session) {
+        console.log('test session')
+        builder.Prompts.text(session, 'Hi! Ask me something... ');
+    },
+    
+  function (session, results) {
+        console.log(results,'session, results')
+        aimlPromise(results.response).then(res => session.send(` ${res}`));
+        console.log(results,'session, res')
+        
+    }
+  
   ]).triggerAction({
     matches: 'None'
 	//onInterrupted: function (session) {
@@ -205,6 +287,9 @@ bot.dialog('service', [
   
   //session.send('Let me know your car number');
   }
+    
+      
+    
   ]).triggerAction({
     matches: 'service'
 });
@@ -220,6 +305,12 @@ bot.dialog('car', [
 	{
 	//session.send('model %s', args[0])
 	builder.Prompts.text(session, "Let me know your car number");
+       
+        
+        
+        
+        
+        
 	}
 	else
 	{
